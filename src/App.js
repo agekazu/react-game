@@ -13,11 +13,7 @@ function Square( {value, onSquareClick} ) {
 }
 
 //ゲームの盤面
-export function Board() {
-  // 盤面上の◯、✗の状況
-  const [squares, setSquares] = useState(Array(9).fill(null))
-  // 手番管理
-  const [xIsNext, setIsNext] = useState(true)
+function Board({xIsNext, squares, onPlay}) {
 
   function handleClick(index) {
     // クリックした箇所に値がある場合処理を実施しない
@@ -26,18 +22,16 @@ export function Board() {
     }
     const nextSquares = squares.slice();
     if(xIsNext) {
-      nextSquares[index] = "✗"
+      nextSquares[index] = "✗";
     } else {
-      nextSquares[index] = "◯"
+      nextSquares[index] = "◯";
     }
-    setSquares(nextSquares)
-    setIsNext(!xIsNext)
+    onPlay(nextSquares);
   }
 
   // 画面表示ステータス
   const winnerName = getWinnerName(squares);
   let status;
-  console.log(winnerName);
   if (winnerName) {
     status = "Winner: " + winnerName;
   } else {
@@ -67,21 +61,53 @@ export function Board() {
 }
 
 //ゲーム管理
-export default function Game() {
+export default function Game({nextSquares}) {
+  console.log("Game!");
+  // 手番管理
+  const [history, setHistory] = useState([Array(9).fill(null)]);
+  const [currentMove, setCurrentMove] = useState(0);
+  const xIsNext = currentMove % 2 === 0;
+  const currentSquares = history[currentMove];
+
+  function handlePlay(nextSquares) {
+    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
+    setHistory(nextHistory);
+    setCurrentMove(nextHistory.length - 1);
+  }
+
+  function jumpTo(nextMove) {
+    setCurrentMove(nextMove);
+  }
+
+  const moves = history.map((squares, moveCount) => {
+    let description;
+    if (moveCount > 0) {
+      description = "手順" + moveCount + "へ戻る";
+    } else {
+      description = "ゲーム開始";
+    }
+
+    return (
+      <li key={moveCount}>
+        <button onClick={() => jumpTo(moveCount)}>{description}</button>
+      </li>
+    )
+  })
+
   return (
     <div className="game">
       <div className="game-board">
-        <Board />
+        <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay}/>
       </div>
       <div className="game-info">
-        <ol>{/*TODO*/}</ol>
+        <ol>{moves}</ol>
       </div>
     </div>
   )
 }
 
 // ヘルパー関数 勝者名を返す
-function getWinnerName(square) {
+function getWinnerName(squares) {
   const winLines = [
     [0, 1, 2],
     [3, 4, 5],
@@ -94,8 +120,8 @@ function getWinnerName(square) {
   ];
   for (let i = 0; i < winLines.length; i++) {
     const [a, b, c] = winLines[i];
-    if (square[a] && square[a] === square[b] && square[a] === square[c]) {
-      return square[a];
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      return squares[a];
     }
   }
   return null
